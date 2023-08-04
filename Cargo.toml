@@ -1,0 +1,39 @@
+[workspace]
+members = [
+    "crates/helper_macros",
+    "crates/utils",
+    "crates/directories",
+    "crates/directory_sql/entities",
+    "crates/directory_sql/migration",
+    "crates/directory_sql",
+    "crates/storages",
+    "crates/storage_mail_directory",
+    "crates/imap",
+    "crates/smtp",
+    "crates/nitro_mail",
+    "crates/test_directory",
+    "crates/test_directory/directory_tests"
+]
+
+
+resolver = "2"
+
+[workspace.dependencies]
+tokio = { version = "1.0", features = ["full"] }
+futures-lite = "1"
+serde={ version = "1.0", features = ["derive"] }
+toml = "0.7"
+parking_lot = {version="0.12"}
+interprocess = { version = "1.2", features = ["tokio_support"] }
+tracing = { version = "0.1", features = ["log"] }
+anyhow = "1"
+bytes = "1"
+uuid = { version = "1",features = ["v5","v4","serde"] }
+rkyv = { version = "0.7", features = ["uuid", "validation"] }
+ahash = { version = "0.8" ,features = ["serde"]}
+thiserror = "1"
+async-trait = "0.1"
+rand = { version = "0.8" }
+strum = {version = "0.25", features = ["derive"]}
+chrono = { version = "0.4",features = ["serde"]}
+semver = { version = "1.0",features = ["serde"]}

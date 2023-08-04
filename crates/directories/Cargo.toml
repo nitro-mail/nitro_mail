@@ -1,0 +1,25 @@
+[package]
+name = "directories"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+resolver= "2"
+[dependencies]
+tokio = {workspace=true}
+serde= {workspace=true}
+utils = {path = "../utils"}
+interprocess = {workspace=true}
+tracing = {workspace=true}
+anyhow = {workspace=true}
+bytes = {workspace=true}
+futures-lite = { workspace=true}
+uuid = {workspace=true}
+auto_impl = "1"
+rkyv = {workspace=true}
+parking_lot = {workspace=true}
+thiserror = {workspace=true}
+async-trait = {workspace=true}
+helper_macros = {path = "../helper_macros"}
+[features]
+test_directory = []
