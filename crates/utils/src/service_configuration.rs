@@ -13,9 +13,9 @@
 )]
 #[archive(compare(PartialEq), check_bytes)]
 pub struct GitInfo {
-    commit: String,
-    branch: String,
-    commit_date: String,
+    pub commit: String,
+    pub branch: String,
+    pub commit_date: String,
 }
 
 #[derive(
@@ -54,7 +54,9 @@ pub enum ServiceConfigurationResponse {
     /// It means the Namespaces of the internal service or nitro_mail has been changed.
     /// This is a critical error. Could mean a loss of data.
     NamespaceMismatch,
+
     Success {
+        new_install: bool,
         internal_service_name: String,
         git: GitInfo,
         service_type: ServiceType,

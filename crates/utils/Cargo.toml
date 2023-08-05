@@ -19,3 +19,8 @@ uuid = {workspace=true}
 interprocess = {workspace=true}
 rand = {workspace=true}
 chrono = {workspace=true}
+ahash = {workspace=true}
+auto_impl = "1"
+impl-tools = "0.9"
+async-trait = {workspace=true}
+futures = {workspace=true}

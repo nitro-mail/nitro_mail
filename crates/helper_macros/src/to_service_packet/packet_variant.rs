@@ -5,7 +5,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, ToTokens};
 use syn::parse::{Parse, ParseStream, Parser};
 use syn::spanned::Spanned;
-use syn::{Error, Ident, Index, LitBool, Path, Result, Token, Type, Variant};
+use syn::{Error, Fields, Ident, Index, LitBool, Path, Result, Token, Type, Variant};
 
 #[derive(Debug)]
 
@@ -128,6 +128,7 @@ pub struct ToServicePacketVariant {
 pub struct ToServicePacketVariantField {
     pub ident: Option<Ident>,
     pub ty: Type,
+    pub is_tuple: bool,
 }
 impl ToServicePacketVariant {
     pub fn new(
@@ -142,15 +143,35 @@ impl ToServicePacketVariant {
             .find(|attr| attr.path().is_ident("packet"))
             .map(|attr| attr.parse_args::<ToServicePacketVariantAttributes>())
             .ok_or(Error::new_spanned(&variant, "Missing packet attribute"))??;
+        let is_tuple = if let Fields::Unnamed(_) = variant.fields {
+            true
+        } else {
+            false
+        };
 
-        let fields = variant
+        let fields: Vec<_> = variant
             .fields
             .iter()
             .map(|field| ToServicePacketVariantField {
                 ident: field.ident.clone(),
                 ty: field.ty.clone(),
+                is_tuple: is_tuple,
             })
             .collect();
+        if let SubPacketOrMethod::SubPacket(_) = &value.call {
+            if fields.len() != 1 {
+                return Err(Error::new_spanned(
+                    &variant,
+                    "SubPacket variants must have exactly one field",
+                ));
+            }
+            if !fields.get(0).unwrap().is_tuple {
+                return Err(Error::new_spanned(
+                    &variant,
+                    "SubPacket variants must be a tuple struct",
+                ));
+            }
+        }
 
         Ok(ToServicePacketVariant {
             variant: variant.ident,
@@ -161,7 +182,7 @@ impl ToServicePacketVariant {
             service_ident,
         })
     }
-    pub fn token_stream_catch(mut self, span: Span) -> Result<TokenStream> {
+    pub fn token_stream_catch(mut self) -> Result<TokenStream> {
         let ToServicePacketVariant {
             variant,
             packet_type,

@@ -6,3 +6,19 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tokio = { workspace = true }
+serde= {workspace=true}
+utils = {path = "../utils"}
+directories = {path="../directories"}
+storages = {path="../storages"}
+tracing = {workspace=true}
+anyhow = {workspace=true}
+bytes = {workspace=true}
+futures-lite = { workspace=true}
+uuid = {workspace=true}
+parking_lot = {workspace=true}
+ahash = {workspace=true}
+toml = {workspace=true}
+tracing-subscriber = "0.3"
+async-trait = {workspace=true}
+thiserror = {workspace=true}

@@ -4,6 +4,6 @@ use vergen::EmitBuilder;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Emit the instructions
-    EmitBuilder::builder().emit()?;
+    EmitBuilder::builder().all_git().emit()?;
     Ok(())
 }

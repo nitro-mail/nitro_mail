@@ -11,9 +11,9 @@ use uuid::Uuid;
 use directories::directory_type::Directory;
 use directories::ValidateDirectoryRequest;
 use utils::account::{Account, EmailAddress};
+use utils::configs::{Config, ConfigName};
 use utils::service::Service;
 use utils::service_configuration::ServiceConfigurationResponse;
-use utils::Config;
 
 pub mod shared_constants {
     include!("../../../tests/shared_constants.rs");
@@ -46,18 +46,18 @@ impl Default for TestConfig {
     }
 }
 impl Config for TestConfig {
-    fn config_header() -> &'static str
+    fn config_header() -> Option<&'static str>
     where
         Self: Sized,
     {
-        "test_config"
+        Some("# This is for the test directory. ")
     }
 
-    fn config_name() -> &'static str
+    fn config_name() -> ConfigName
     where
         Self: Sized,
     {
-        "test_config.toml"
+        ConfigName::Name("test_directory.toml")
     }
 }
 #[derive(Debug)]

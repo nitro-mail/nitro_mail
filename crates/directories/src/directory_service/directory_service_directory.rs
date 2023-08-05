@@ -1,10 +1,13 @@
+use std::future::Future;
 use std::io;
 use std::io::ErrorKind;
 use std::ops::{Deref, DerefMut};
+use std::pin::Pin;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use bytes::BytesMut;
+use futures_core::future::LocalBoxFuture;
 use futures_lite::{
     AsyncReadExt as FuturesLiteAsyncRead, AsyncWriteExt as FuturesLightAsyncWriteExt,
 };
@@ -14,7 +17,7 @@ use tracing::trace;
 
 use utils::account::Account;
 use utils::interprocess_guard::InterprocessConnectionInner;
-use utils::service::Service;
+use utils::service::{Service, ServiceAccess};
 use utils::service_configuration::ServiceConfigurationResponse;
 
 use crate::directory_service::packets::{FromServicePackets, ToServicePackets};
@@ -33,6 +36,24 @@ impl Deref for DirectoryServiceDirectory {
     type Target = InterprocessConnectionInner;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+#[derive(Clone, Debug)]
+pub struct DirectoryServiceDirectoryAccess;
+
+impl ServiceAccess for DirectoryServiceDirectoryAccess {
+    type ServiceResponse = DirectoryServiceDirectory;
+    type Error = DirectoryServiceError;
+    type Future = Pin<
+        Box<
+            dyn Future<Output = Result<DirectoryServiceDirectory, DirectoryServiceError>>
+                + Send
+                + 'static,
+        >,
+    >;
+
+    fn get_service(&self) -> Self::Future {
+        Box::pin(async move { DirectoryServiceDirectory::load(()).await })
     }
 }
 impl DirectoryServiceDirectory {

@@ -1,6 +1,6 @@
+use crate::directory_type::Directory;
+use utils::service::ServiceAccess;
 use uuid::Uuid;
-
-use utils::Config;
 
 pub mod directory_service;
 pub mod directory_type;

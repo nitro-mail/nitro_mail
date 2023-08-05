@@ -37,3 +37,6 @@ rand = { version = "0.8" }
 strum = {version = "0.25", features = ["derive"]}
 chrono = { version = "0.4",features = ["serde"]}
 semver = { version = "1.0",features = ["serde"]}
+futures-util = "0.3"
+futures-core = "0.3"
+futures = "0.3"

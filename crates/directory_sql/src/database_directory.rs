@@ -1,17 +1,26 @@
 use async_trait::async_trait;
-use sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use futures::future::Ready;
+use sea_orm::prelude::*;
+use sea_orm::{
+    ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, QueryFilter,
+};
+use sqlx::Connection;
+use std::convert::Infallible;
+use std::fmt::Debug;
 use thiserror::Error;
+use tracing::error;
 
 use directories::directory_type::Directory;
 use directories::ValidateDirectoryRequest;
+use entities::system_configuration::SystemConfigurationOptions;
 use utils::account::Account;
-use utils::service::Service;
-use utils::service_configuration::ServiceConfigurationResponse;
+use utils::service::{Service, ServiceAccess};
+use utils::service_configuration::{GitInfo, ServiceConfigurationResponse, ServiceType};
 
 use crate::database_config::DatabaseConfig;
 
 #[async_trait]
-pub trait DatabaseDirectoryTrait: Send + Sync + 'static {
+pub trait DatabaseDirectoryTrait: Send + Sync + 'static + ConnectionTrait + Clone {
     async fn connect(connection_options: ConnectOptions) -> Result<Self, Error>
     where
         Self: Sized;
@@ -37,7 +46,7 @@ impl DatabaseDirectoryTrait for DatabaseConnection {
 #[derive(Debug, Error)]
 pub enum Error {
     #[error(transparent)]
-    DatabaseError(#[from] sea_orm::error::DbErr),
+    DatabaseError(#[from] DbErr),
     #[error(transparent)]
     SQLXError(#[from] sqlx::Error),
 }
@@ -45,7 +54,43 @@ pub enum Error {
 pub struct DatabaseDirectory<Connection: DatabaseDirectoryTrait> {
     pub(crate) database: Connection,
 }
+impl<Connection: DatabaseDirectoryTrait> ServiceAccess for DatabaseDirectory<Connection> {
+    type ServiceResponse = Self;
+    type Error = Infallible;
+    type Future = Ready<Result<Self, Self::Error>>;
 
+    fn get_service(&self) -> Self::Future {
+        futures::future::ready(Ok(self.clone()))
+    }
+}
+impl<Connection: DatabaseDirectoryTrait> DatabaseDirectory<Connection> {
+    fn log_failed_configuration_check(
+        validate_config_request: &ValidateDirectoryRequest,
+        user_namespace: &impl Debug,
+        group_namespace: &impl Debug,
+    ) -> ServiceConfigurationResponse {
+        error!("Namespace mismatch");
+        error!("User namespace: {:?}", user_namespace);
+        error!("Group namespace: {:?}", group_namespace);
+        error!("Expected: {:?}", validate_config_request);
+        // TODO add instructions
+        error!("Please follow the instructions here: https://docs.nitro-mail.kingtux.dev/");
+        ServiceConfigurationResponse::NamespaceMismatch {}
+    }
+    fn get_success_response(new_install: bool) -> ServiceConfigurationResponse {
+        ServiceConfigurationResponse::Success {
+            new_install,
+            internal_service_name: Self::directory_name().to_string(),
+            git: GitInfo {
+                commit: env!("VERGEN_GIT_SHA").to_string(),
+                branch: env!("VERGEN_GIT_BRANCH").to_string(),
+                commit_date: env!("VERGEN_GIT_COMMIT_DATE").to_string(),
+            },
+            service_type: ServiceType::Directory,
+            version: env!("CARGO_PKG_VERSION").to_string(),
+        }
+    }
+}
 impl<Connection: DatabaseDirectoryTrait> Service for DatabaseDirectory<Connection> {
     type ServiceConfig = DatabaseConfig;
     type ServiceError = Error;
@@ -90,6 +135,63 @@ impl<Connection: DatabaseDirectoryTrait> Directory for DatabaseDirectory<Connect
         &self,
         validate_config_request: ValidateDirectoryRequest,
     ) -> Result<ServiceConfigurationResponse, Self::ServiceError> {
-        todo!()
+        use entities::system_configuration::ActiveModel as SystemConfigurationActiveModel;
+        use entities::system_configuration::Column as SystemConfigurationColumn;
+        use entities::system_configuration::Entity as SystemConfigurationEntity;
+        let user_namespace = SystemConfigurationEntity::find()
+            .filter(SystemConfigurationColumn::Key.eq(SystemConfigurationOptions::AccountNamespace))
+            .one(&self.database)
+            .await?;
+        let group_namespace = SystemConfigurationEntity::find()
+            .filter(SystemConfigurationColumn::Key.eq(SystemConfigurationOptions::GroupNamespace))
+            .one(&self.database)
+            .await?;
+
+        // Check if neither of the namespaces are set
+        return if user_namespace.is_none() && group_namespace.is_none() {
+            // New Install
+            SystemConfigurationEntity::insert(SystemConfigurationActiveModel {
+                id: Default::default(),
+                key: ActiveValue::Set(SystemConfigurationOptions::AccountNamespace),
+                value: ActiveValue::Set(
+                    validate_config_request
+                        .account_namespace
+                        .as_bytes()
+                        .to_vec(),
+                ),
+            })
+            .exec(&self.database)
+            .await?;
+            SystemConfigurationEntity::insert(SystemConfigurationActiveModel {
+                id: Default::default(),
+                key: ActiveValue::Set(SystemConfigurationOptions::GroupNamespace),
+                value: ActiveValue::Set(
+                    validate_config_request.group_namespace.as_bytes().to_vec(),
+                ),
+            })
+            .exec(&self.database)
+            .await?;
+            Ok(Self::get_success_response(true))
+        } else if let (Some(user_namespace), Some(group_namespace)) =
+            (&user_namespace, &group_namespace)
+        {
+            if user_namespace.value == validate_config_request.account_namespace.as_bytes()
+                && group_namespace.value == validate_config_request.group_namespace.as_bytes()
+            {
+                Ok(Self::get_success_response(false))
+            } else {
+                Ok(Self::log_failed_configuration_check(
+                    &validate_config_request,
+                    &user_namespace,
+                    &group_namespace,
+                ))
+            }
+        } else {
+            Ok(Self::log_failed_configuration_check(
+                &validate_config_request,
+                &user_namespace,
+                &group_namespace,
+            ))
+        };
     }
 }

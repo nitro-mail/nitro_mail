@@ -102,7 +102,6 @@ pub fn handle(input: DeriveInput) -> Result<TokenStream> {
     };
     let service_name = format_ident!("service");
     let mut variants = Vec::with_capacity(enum_input.variants.len());
-    let span_for_impl = span.clone();
     for variant in enum_input.variants {
         let variant1 = ToServicePacketVariant::new(
             variant,
@@ -110,7 +109,7 @@ pub fn handle(input: DeriveInput) -> Result<TokenStream> {
             from_service_type.clone(),
             service_name.clone(),
         )?;
-        let variant_token_stream = variant1.token_stream_catch(span_for_impl.clone())?;
+        let variant_token_stream = variant1.token_stream_catch()?;
         variants.push(variant_token_stream);
     }
 

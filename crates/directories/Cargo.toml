@@ -13,7 +13,9 @@ interprocess = {workspace=true}
 tracing = {workspace=true}
 anyhow = {workspace=true}
 bytes = {workspace=true}
-futures-lite = { workspace=true}
+futures-util = {workspace=true}
+futures-core = {workspace=true}
+futures-lite = {workspace=true}
 uuid = {workspace=true}
 auto_impl = "1"
 rkyv = {workspace=true}

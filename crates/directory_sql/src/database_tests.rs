@@ -1,18 +1,26 @@
 use std::env;
+use std::path::{Path, PathBuf};
 
-use sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 
 use migration::{Migrator, MigratorTrait};
 
 async fn connect_to_database() -> Option<DatabaseConnection> {
-    dotenv::dotenv().ok();
-    Database::connect(ConnectOptions::new(
-        env::var("DATABASE_URL").unwrap_or_else(|e| {
-            "postgres://postgres:password@localhost:5432/test_database".to_string()
-        }),
-    ))
-    .await
-    .ok()
+    println!("Dotenv: {:?}", dotenv::dotenv());
+    let url = env::var("DATABASE_URL").ok().unwrap_or_else(|| {
+        env::var("POSTGRES_INSTANCE")
+            .ok()
+            .map(|v| format!("{}nitro_mail_test", v))
+            .unwrap_or_else(|| format!("postgres://postgres:postgres@localhost/nitro_mail_test"))
+    });
+    println!("url: {}", url);
+    return match Database::connect(ConnectOptions::new(url)).await {
+        Ok(ok) => Some(ok),
+        Err(err) => {
+            println!("Error connecting to database: {:?}", err);
+            None
+        }
+    };
 }
 #[tokio::test]
 async fn test_database_create() {

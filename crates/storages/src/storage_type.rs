@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 
 use utils::service::Service;
-use utils::Config;
 
 #[async_trait]
 pub trait Storage: Service {

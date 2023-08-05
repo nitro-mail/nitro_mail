@@ -4,7 +4,7 @@ use sea_orm::ConnectOptions;
 use serde::{Deserialize, Serialize};
 
 use helper_macros::const_and_default_function;
-use utils::Config;
+use utils::configs::{Config, ConfigName};
 
 use crate::database_config::mysql::MysqlSettings;
 use crate::database_config::postgres::PostgresSettings;
@@ -61,18 +61,18 @@ impl Into<ConnectOptions> for DatabaseConfig {
     }
 }
 impl Config for DatabaseConfig {
-    fn config_header() -> &'static str
+    fn config_header() -> Option<&'static str>
     where
         Self: Sized,
     {
-        // TODO put URL to documentation here
-        r#""#
+        Some("https://docs.nitro_mail.kingtux.dev/configs/sql_directory")
     }
-    fn config_name() -> &'static str
+
+    fn config_name() -> ConfigName
     where
         Self: Sized,
     {
-        "database.directory.toml"
+        ConfigName::Name("sql.directory.toml")
     }
 }
 impl Default for DatabaseConfig {

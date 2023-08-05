@@ -13,8 +13,6 @@ impl MigrationTrait for Migration {
         crate::entities!(schema, manager, entities::AccountEntity);
         crate::entities!(schema, manager, entities::EmailEntity);
         crate::entities!(schema, manager, entities::GroupAccountRelEntity);
-        crate::entities!(schema, manager, entities::SystemConfigurationEntity);
-
         Ok(())
     }
 
